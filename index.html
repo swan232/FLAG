@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Gambling Task</title>
+    <script src="jspsych-6.1.0/jquery.min.js"></script>
+    <script src="jspsych-6.1.0/jspsych.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-survey-multi-choice.js"></script>
+	  <script src="jspsych-6.1.0/plugins/jspsych-html-button-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-image-keyboard-response.js"></script>
+    <script src="jspsych-6.1.0/plugins/jspsych-survey-text.js"></script>
+    <link href="jspsych-6.1.0/css/jspsych.css" rel="stylesheet" type="text/css"></link>
+	  <script type="text/javascript" src="lib/jspsych-pavlovia-3.0.0.js"></script>
+  </head>
+  <body></body>
+  <script>
+
+
+  // Setup some variables and helper functions
+  var timeline = [];
+  var counter = 1;
+  var block = 1;
+  var saveEveryNGames = 2;
+  var total_decks;// = 180;
+  var resp;
+  var sID;
+  var score = 1000;
+
+  var cardHeight = 500/2;
+  var cardWidth = 358/2;
+  var cardFontSize = 120/2;
+
+  var scoreFontSize = 24;
+  var newDeckFontSize = 60;
+
+  var facesFlag = false; // this controls whether faces are displayed or not
+
+
+
+  function new_deck(str){
+    return "<div style='position: fixed; font-size:"+newDeckFontSize+"px; top: 80%; left: 50%; transform: translate(-50%, 0); width: 80%; max-width: 800px; '>"+str+"</div>";
+  }
+  function new_deck_top(str){
+    return "<div style='position: fixed; font-size:"+newDeckFontSize+"px; top: 10%; left: 50%; transform: translate(-50%, 0); width: 80%; max-width: 800px; '>"+str+"</div>";
+  }
+  function guide(str, color="red"){
+    return "<div style='position: fixed; font-size: 18pt; padding: 10px; background-color: white; line-height: 1.5; top: 0; left: 50%; transform: translate(-50%, 0); width: 80%; max-width: 1250px; border-style: solid; border-color: "+color+"'>"+str+"</div>";
+  }
+  function game_number(){
+    return "<div style='position: fixed; bottom: 0;  left: 0%; width:100%; text-align: right'>Draw number: "+trial_counter+" of 5&nbsp<br>Deck number: "+counter+" of "+total_decks +"&nbsp</div>";
+  }
+  function game_number_choice(){
+    return "<div style='position: fixed; bottom: 0;  left: 0%; width:100%; text-align: right'>Choice&nbsp<br>Deck number: "+counter+" of "+total_decks +"&nbsp</div>";
+  }
+  function current_score(){
+    return "<div style='position: fixed; bottom: 50px; left: 0%; width:100%; font-size: "+scoreFontSize+"pt'>Score: "+score+"</div>";
+  }
+
+  function card_down(card){
+      return "<div style='float: left; border-style: solid; border-width: 2px; border-color: white; height: "+cardHeight+"px; width: "+cardWidth+"px;background-image: url("+card+"); height: "+cardHeight+"px; width: "+cardWidth+"px;')></div>";//<img src='"+card+"'></img></div>"
+  }
+  function empty(){
+    return "<div style='float: left; height: "+cardHeight+"px; width: 200px;')></div>"
+  }
+  function card_up(r){
+    if (r > 0){
+      return "<div style='float: left; display: flex; justify-content: center; align-items: center; height: "+cardHeight+"px; width: "+cardWidth+"px; border-style: solid; border-width: 2px; border-color: black; font-size:"+cardFontSize+"px;'')>+" + r + "</div>"
+    } else {
+      return "<div style='float: left; display: flex; justify-content: center; align-items: center; height: "+cardHeight+"px; width: "+cardWidth+"px; border-style: solid; border-width: 2px; border-color: black; font-size:"+cardFontSize+"px;'')>" + r + "</div>"
+    }
+
+  }
+  function face_card_up(r, card){
+    if (r > 0){
+      return "<div style='float: left;z-index: 1; display: flex; justify-content: center; align-items: center; height: "+cardHeight+"px; width: "+cardWidth+"px; border-style: solid; border-style: solid; border-width: 2px; border-color: white; font-size:"+cardFontSize+"px;'><div style='position: absolute; z-index: -1; background-image: url("+card+"); height: "+cardHeight+"px; width: "+cardWidth+"px; opacity: 0.9;'></div>+"+r+"</div>";
+    } else {
+      return "<div style='float: left;z-index: 1; display: flex; justify-content: center; align-items: center; height: "+cardHeight+"px; width: "+cardWidth+"px; border-style: solid; border-width: 2px; border-color: white; font-size:"+cardFontSize+"px;'><div style='position: absolute; z-index: -1; background-image: url("+card+"); height: "+cardHeight+"px; width: "+cardWidth+"px; opacity: 0.9;'></div>"+r+"</div>";
+    }
+
+  }
+
+  function card_up_grey(r){
+    if (r > 0){
+      return "<div style='float: left; display: flex; justify-content: center; align-items: center; height: "+cardHeight+"px; width: "+cardWidth+"px; border-style: solid; border-width: 2px; border-color: white; font-size:"+cardFontSize+"px; color:grey; background-color: lightgrey;'')>+" + r + "</div>"
+    } else {
+      return "<div style='float: left; display: flex; justify-content: center; align-items: center; height: "+cardHeight+"px; width: "+cardWidth+"px; border-style: solid; border-width: 2px; border-color: white; font-size:"+cardFontSize+"px; color:grey; background-color: lightgrey;'')>" + r + "</div>"
+    }
+  }
+
+  function left_down(){
+    return card_down()+empty()+empty();
+  }
+  function left_up(r){
+    return card_up(r)+empty()+empty();
+  }
+  function right_down(){
+    return empty()+empty()+card_down();
+  }
+  function right_up(r){
+    return empty()+empty()+card_up(r);
+  }
+
+  /* init connection with pavlovia.org */
+  var pavlovia_init = {
+  	type: "pavlovia",
+  	command: "init"
+  };
+  timeline.push(pavlovia_init);
+
+
+  // SUBJECT DEMOGRAPHICS
+  var survey_trial = {
+    type: 'survey-text',
+    questions: [
+      {prompt: "Please enter your gender", name: 'Gender'},
+      {prompt: "Please enter your age", name: 'Age'}
+    ],
+    on_finish: function (trial){
+      resp = JSON.parse(trial.responses);
+      sID = jsPsych.randomization.randomID(15);
+      console.log(sID);
+
+    }
+  };
+  timeline.push(survey_trial);
+
+  // INSTRUCTIONS
+  // easier to do instructions like this where we make each slide of instructions
+  var inst1 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'Welcome to the experiment!<br><br>[press any key to continue]';
+      trial.stimulus = guide(str);
+    }
+  }
+  /*var inst2 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'NOTE: This is a pilot experiment for internal testing for the NRDlab and collaborators.';
+      trial.stimulus = guide(str);
+    }
+  }*/
+  var inst3 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'In this experiment you will make decisions about whether to draw a card to get a variable payout or take a sure-thing payout.<br><br>[press any key to continue]';
+      trial.stimulus = guide(str);
+    }
+  }
+  var inst4 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'Here is what your choice might look like. On the left is a deck of cards that has variable payouts and on the right a sure-thing offer of 100 points.<br><br>[press any key to continue]';
+      trial.stimulus = guide(str)+card_down('./img/card1.png')+empty()+card_up_grey(100);
+    }
+  }
+  var inst5 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = "You will press the 'F' key to choose the left-side option (deck). <br>You will press the 'J' key to choose the right-side option (sure-thing offer).<br><br>[press any key to continue]";
+      trial.stimulus = guide(str)+card_down('./img/card1.png')+empty()+card_up_grey(100);
+    }
+  }
+  var inst6 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = "If you choose the deck, you will get that card's hidden offer. <br><br>The offer could be a positive or negative.  <br><br>[press any key to continue]";
+      trial.stimulus = guide(str)+card_down('./img/card1.png')+empty()+card_up_grey(100);
+    }
+  }
+  var inst6a = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'In this case the hidden card was worth +200 points, so the variable deck was a better than the sure-thing. <br><br>[press any key to continue]';
+      trial.stimulus = guide(str)+card_up(200)+empty()+card_up_grey(100);
+    }
+  }
+  var inst7 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'On this trial, the hidden card was worth -150 points, so the sure-thing was better than the variable deck.<br><br>[press any key to continue]';
+      trial.stimulus = guide(str)+card_up(-150)+empty()+card_up_grey(100);
+    }
+  }
+  var inst8 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'Every decision involves a different deck of cards with variable payouts. <br>Some decks are better on average and some decks are worse on average. <br><br>[press any key to continue]'
+      // str = 'Every decision involves a different deck of cards that was created by participants in our lab. Some people designed decks that were good on average (although even these decks can have negative outcomes), some people designed decks that were bad on average (although these can have some positive outcomes too).';
+      trial.stimulus = guide(str);
+    }
+  }
+  // var inst8a = {
+  //   type: 'html-keyboard-response',
+  //   stimulus: 'hi',
+  //   on_start: function(trial) {
+  //     str = 'For the decks designed by people, some participants made decks that are good on average and others made decks that are bad on average. <br><br>Likewise, some of the decks designed by computer programs are good on average and others are bad on average. <br><br> Decks that are “good” on average tend to pay out positive values causing you to gain points. Decks that are “bad” on average tend to pay out negative values causing you to lose points. <br><br>However, even good and bad decks can have a mixture of positive and negative cards.<br><br>[press any key to continue]'
+  //     // str = 'Every decision involves a different deck of cards that was created by participants in our lab. Some people designed decks that were good on average (although even these decks can have negative outcomes), some people designed decks that were bad on average (although these can have some positive outcomes too).';
+  //     trial.stimulus = guide(str);
+  //   }
+  // }
+  // var inst8b = {
+  //   type: 'html-keyboard-response',
+  //   stimulus: 'hi',
+  //   on_start: function(trial) {
+  //     str = 'Crucially, while good decks are usually good on average, they can occasionally give negative outcomes.  Conversely, while bad decks are usually bad on average, they can occasionally give positive outcomes.'
+  //     // str = 'Every decision involves a different deck of cards that was created by participants in our lab. Some people designed decks that were good on average (although even these decks can have negative outcomes), some people designed decks that were bad on average (although these can have some positive outcomes too).';
+  //     trial.stimulus = guide(str);
+  //   }
+  // }
+  // var inst8c = {
+  //   type: 'html-keyboard-response',
+  //   stimulus: 'hi',
+  //   on_start: function(trial) {
+  //     str = 'When a deck was created by a computer program, you will see a unique image of a computer with a colored background and a label to indicate whether the computer program usually makes good or bad decks. <br><br>[press any key to continue]'
+  //     // str = 'Every decision involves a different deck of cards that was created by participants in our lab. Some people designed decks that were good on average (although even these decks can have negative outcomes), some people designed decks that were bad on average (although these can have some positive outcomes too).';
+  //     trial.stimulus = guide(str)//+card_down("./img/computer_negative.png");
+  //   }
+  // }
+  // var inst8d = {
+  //   type: 'html-keyboard-response',
+  //   stimulus: 'hi',
+  //   on_start: function(trial) {
+  //     str = 'For example, here is a case where the computer program usually (but not always) creates bad decks.<br><br>[press any key to continue]'
+  //     // str = 'Every decision involves a different deck of cards that was created by participants in our lab. Some people designed decks that were good on average (although even these decks can have negative outcomes), some people designed decks that were bad on average (although these can have some positive outcomes too).';
+  //     trial.stimulus = guide(str)+card_down("./img/computer_negative.png");
+  //   }
+  // }
+  // var inst9 = {
+  //   type: 'html-keyboard-response',
+  //   stimulus: 'hi',
+  //   on_start: function(trial) {
+  //     str = 'When a deck was created by a person, the card deck will show an image of the person who created it. <br><br>Each person was a participant, a member of the public, who came into our lab. This may give you a clue as to whether this person was trustworthy or not.<br><br>[press any key to continue]';
+  //     trial.stimulus = guide(str)+card_down("./img/faces/038_m_m_a_b.png" );
+  //   }
+  // }
+  var inst10 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'To give you a sense of whether the deck is good or bad, you will be shown 5 cards from each deck before you are asked to choose between the variable deck option and the sure-thing option. <br><br>To see these example cards you will press the SPACE BAR.<br><br>[press any key to continue]';
+      trial.stimulus = guide(str);
+    }
+  }
+  var inst11 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'To help you keep track of how well you are doing, your score will be shown at the bottom of the screen.  <br><br>You will start from 1000 points and can both gain and lose points. <br><br>Note that you will only gain or lose points when you choose between the two options.<br><br>[press any key to continue]';
+      trial.stimulus = guide(str);
+    }
+  }
+  var inst12 = {
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    on_start: function(trial) {
+      str = 'In the experiment you will make decisions about 180 different decks. This should take about 20-30 minutes to complete. <br><br>When you are ready to begin we will try a few example games to make sure that everything makes sense.<br><br>[press any key to continue]';
+      trial.stimulus = guide(str);
+    }
+  }
+
+  var instructions = {
+    timeline: [inst1, inst3, inst4, inst5, inst6, inst6a, inst7, inst8, inst10, inst11, inst12],
+  }
+  timeline.push(instructions);
+
+
+  // TRIALS
+  // trial component 1: new game
+  var trial_new_game = {
+    type: 'html-keyboard-response',
+    stimulus: "hi",
+    trial_duration: 1000,
+    data: {
+      block: null,
+      type: 'NewDeck',
+    },
+    choices: jsPsych.NO_KEYS,
+    on_start: function(trial){
+      var practice = jsPsych.timelineVariable('practice',  true);
+      var card = jsPsych.timelineVariable('card',  true);
+      var str = 'The words "New Deck" will appear each time there is a new deck with a different average payoff. The task automatically moves on after 1 second.  <br><br>For this practice game, press SPACE BAR to continue.';
+      trial_counter = 0; // initialize trial counter to 0
+      if (practice) {
+        trial.stimulus = card_down(card)+guide(str)+game_number()+current_score();//"<div style='font-size:120px;'><img src='"+card+"'></img></div>"+guide(str)+game_number()+current_score();
+        trial.trial_duration = null;
+        trial.choices = [32];
+      }
+      else {
+        trial.stimulus = new_deck_top("New Deck")+card_down(card)+game_number()+current_score();
+      }
+      trial.data.counter = counter;
+      trial.data.block = block;
+    }
+  }
+
+  // trial component 2: cards down
+  var trial_down = {
+
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    choices: [32], // 32 is space bar
+    data: {
+      reward: -100,
+      // mean: -1,
+      // sigma: -1,
+      side: -1, // 1 for left', 0 for right, -1 for center
+      type: 'forced_down',
+      card: ''
+    },
+    on_start: function(trial) {
+      var side = jsPsych.timelineVariable('side',  true);
+      var card = jsPsych.timelineVariable('card',  true);
+      var practice = jsPsych.timelineVariable('practice',  true);
+      var str = jsPsych.timelineVariable('str',  true);
+      if (practice) {
+        Y = empty()+card_down(card)+empty()+guide('Press SPACE BAR to draw one card from the deck ...');
+      }
+      else{
+        Y = empty()+card_down(card)+empty()+guide('Press SPACE BAR to draw one card.', 'white');
+      }
+      Y += game_number();
+      Y += current_score();
+      trial.stimulus    = Y;
+      trial.data.counter = counter;
+      trial.data.block = block;
+
+    }
+
+  }
+
+  // trial component 3: show outcome
+  var trial_outcome = {
+    //
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    choices: 32, //jsPsych.NO_KEYS,
+    trial_duration: 1000,
+    data: {
+      reward: -1,
+      // mean: -1,
+      // sigma: -1,
+      side: -1,
+      type: 'forced_outcome',
+      card: ''
+    },
+    on_start: function(trial) {
+      var outcome   = jsPsych.timelineVariable('outcome',  true);
+      var side = jsPsych.data.get().last(1).values()[0].side;
+      var practice = jsPsych.timelineVariable('practice',  true);
+      var card = "./img/card2.png"//jsPsych.timelineVariable('card',  true);
+      var str = 'This shows the payout from one draw from the deck.<br>Note that this example draw does not contribute to your score.<br><br>  In the experiment this payout disappears after 1 second. During these practice trials press SPACE BAR to move on.';
+
+      // var X = Math.round(randn_bm(m1, s1));
+      //var X = outcome[trial_counter];
+      var X = outcome[trial_counter];
+      trial_counter++; // increment trial_counter ready for next trial
+      //Y = empty()+face_card_up(X, card)+empty();
+      Y = empty()+face_card_up(X, card)+empty();
+      Y += game_number();
+      Y += current_score();
+
+
+      if (practice) {
+        trial.stimulus = Y+guide(str);
+        trial.trial_duration = null;
+        trial.choices = [32];
+      }
+      else {
+        trial.stimulus = Y;
+      }
+
+      trial.data.reward = X;
+      // trial.data.mean   = m1;
+      // trial.data.sigma  = s1;
+      trial.data.card   = jsPsych.timelineVariable('card', true);
+      trial.data.counter = counter;
+      trial.data.block = block;
+
+    }
+  }
+
+  var trial_choice_down = {
+
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    choices: ['f', 'j'],
+    data: {
+      reward: -1,
+      mean: -1,
+      sigma: -1,
+      side: -1,
+      type: 'choice_down',
+      choseDeck: -1,
+      offer: -1,
+      card: ''
+    },
+    on_start: function(trial) {
+      var side = jsPsych.timelineVariable('side',  true);
+      var r    = jsPsych.timelineVariable('offer', true);
+      var card = jsPsych.timelineVariable('card',  true);
+      var practice = jsPsych.timelineVariable('practice',  true);
+      var str = 'Now you have a choice.  Do you want to draw another card from the deck and get a random payout (which will be similar to the example draws you just made), or do you want a known offer for sure? <br><br>Note that the payout your receive from this choice contributes to your score. <br><br>Press F or J to choose left or right';
+      if (practice) {
+
+        if (side){
+          Y = card_down(card)+empty()+card_up_grey(r)+guide(str);
+        }
+        else {
+          Y = card_up_grey(r)+empty()+card_down(card)+guide(str);
+        }
+      }
+      else{
+
+        if (side){
+          Y = card_down(card)+empty()+card_up_grey(r);
+        }
+        else {
+          Y = card_up_grey(r)+empty()+card_down(card);
+        }
+        if (r==1){
+          Y += guide("Do you want another draw from the deck or "+r+" point for sure?<br><br>Press F to choose left, J to choose right", "white");
+        }
+        else{
+          Y += guide("Do you want another draw from the deck or "+r+" points for sure?<br><br>Press F to choose left, J to choose right", "white");
+        }
+      }
+      Y += game_number_choice();
+      Y += current_score();
+
+      trial.stimulus    = Y;
+      trial.data.side   = side;
+      trial.data.card   = card;
+      trial.data.offer  = r;
+      // trial.data.mean = jsPsych.timelineVariable('mean', true);
+      // trial.data.sigma = jsPsych.timelineVariable('sigma', true);
+      trial.data.counter = counter;
+      trial.data.block = block;
+
+    },
+    on_finish: function(data){
+
+      var side = jsPsych.timelineVariable('side',  true);
+      if(data.key_press == 70){// 70 is the numeric code for f
+        if (side){
+          // chose left and deck was on left etc ...
+          data.choseDeck = true;
+        }
+        else {
+          data.choseDeck = false;
+        }
+      } else {
+        if (side){
+          data.choseDeck = false;
+        }
+        else {
+          data.choseDeck = true;
+        }
+      }
+
+    }
+
+  }
+
+  var trial_choice_outcome = {
+
+    type: 'html-keyboard-response',
+    stimulus: 'hi',
+    choices: jsPsych.NO_KEYS,
+    trial_duration: 1000,
+    data: {
+      reward: -1,
+      // mean: -1,
+      // sigma: -1,
+      side: -1,
+      type: 'choice_outcome',
+      reward_on_choice: -1,
+      card: 'hi'
+    },
+    on_start: function(trial) {
+
+      var side  = jsPsych.timelineVariable('side',  true);
+      var offer = jsPsych.timelineVariable('offer', true);
+
+      var practice = jsPsych.timelineVariable('practice',  true);
+
+      var choseDeck = jsPsych.data.get().last(1).values()[0].choseDeck;
+      if (choseDeck){
+        var card  = "./img/card2.png";
+      }
+      else{
+        var card  = jsPsych.timelineVariable('card',  true);
+      }
+      var outcome   = jsPsych.timelineVariable('outcome',  true);
+      deck_reward = outcome[trial_counter]
+      //var deck_reward = Math.round(randn_bm(m1, s1));
+
+
+      if (choseDeck) {
+        // they chose the deck
+        if (side){
+          Y = face_card_up(deck_reward, card)+empty()+card_up_grey(offer);
+        }
+        else {
+          Y = card_up_grey(offer)+empty()+face_card_up(deck_reward, card);
+        }
+        trial.data.reward_on_choice = deck_reward;
+        // update score
+        score += deck_reward
+
+      } else {
+
+        if (side){
+          Y = card_down(card)+empty()+card_up(offer);
+          // Y = face_card_up(deck_reward, card)+empty()+card_up(offer);
+        }
+        else {
+          Y = card_up(offer)+empty()+card_down(card);
+          // Y = card_up(offer)+empty()+face_card_up(deck_reward, card);
+        }
+        //Y += guide(" ", "black");
+        trial.data.reward_on_choice = offer;
+        // update score
+        score += offer
+      }
+
+      if (practice){
+        if (choseDeck){
+          Y = Y+guide('You chose another draw from the deck and earned '+deck_reward+' points. In the experiment this outcome will show for 1 second.  In this practice game please press SPACE BAR to continue.');
+        }
+        else {
+          Y = Y+guide('You chose the known outcome and earned '+offer+' points. In the experiment this outcome will show for 1 second.  In this practice game please press SPACE BAR to continue.');
+        }
+        trial.trial_duration = null;
+        trial.choices =  [32];
+      }
+      Y += game_number_choice();
+      Y += current_score();
+      trial.stimulus    = Y;
+      trial.data.side   = side; // 1 for left'
+      trial.data.card   = card;
+      trial.data.counter = counter;
+      trial.data.block = block;
+      //trial.data.mean   = m1;
+      //trial.data.sigma  = s1;
+    },
+    on_finish: function (){
+      counter = counter + 1;
+      example_game_counter += 1;
+      // if ((counter % saveEveryNGames) == 0){
+      //   dataset = jsPsych.data.get();
+      //   dataset.addToAll({age: resp.Age, initials: resp.Initials, sID: sID});
+      //   dataset = dataset.ignore('internal_node_id');
+      //   dataset = dataset.ignore('responses');
+      //   dataset = dataset.ignore('trial_type');
+      //   data = dataset.filterCustom(function(trial){
+      //     return trial.block === block;
+      //   })
+      //   write_data(data.csv());
+      //   block++;
+      // }
+
+    }
+
+  }
+
+  var game = { // could have a game10 and a game5 for long and short games
+    timeline: makeTrials(5) // can't seem to make n trials dynamic :-(
+  };
+
+  // MAIN STRCTURE OF EACH GAME
+  function makeTrials(n) {
+    var arr = [];
+    arr[0] = trial_new_game; // set trial_counter to 0 in here
+    for (i=0;i<n;i++){
+      arr[2*i+1] = trial_down;
+      arr[2*i+2] = trial_outcome; // increment trial_counter by one
+    };
+    arr[2*(n-1)+3] = trial_choice_down;
+    arr[2*(n-1)+4] = trial_choice_outcome;
+    return arr;
+  };
+
+
+  var example_game_counter = 1; // this is a HACK
+  total_decks = 4;//test_procedure.timeline_variables.length;
+  var example_game = {
+    timeline: [game],
+    timeline_variables: [
+      {outcome: [+100, +70, +700, +110, +90, +80], side: 0, offer: +100,  card: "./img/card1.png", practice: true},
+      {outcome: [+60, +80, +60, +70, +60, +40], side: 1, offer: +60,  card: "./img/card1.png", practice: true},
+      {outcome: [-50, -70, -10, -60, -530, -60], side: 1, offer: -90,  card: "./img/card1.png", practice: true},
+      {outcome: [-40, -50, -50, -60, -70, -50], side: 0, offer: -40,  card: "./img/card1.png", practice: true},
+    ],
+    on_finish: function() {
+      //example_game_counter += 1;
+      console.log(example_game_counter);
+
+
+    }
+  }
+  timeline.push(example_game);
+
+  var ready_to_start = {
+    type: 'html-keyboard-response',
+    stimulus: guide('Hopefully that all makes sense.  <br><br>You press SPACE BAR to draw from the deck 5 times and then F or J to make your choice.  Try to earn the most points you can!  <br><br>Press SPACE BAR to start the game.'),
+    choices: [32],
+    on_start: function(){
+      console.log("does this run?");
+      console.log(example_game_counter);
+      score = 1000;
+      counter = 1;
+      total_decks = test_procedure.timeline_variables.length;
+    }
+  }
+  timeline.push(ready_to_start);
+
+  // REWARD STRUCTURE FOR EACH GAME
+
+  var test_procedure = {
+    timeline: [game],
+    repetitions: 1,
+    randomize_order: true,
+    timeline_variables: [
+      {outcome: [-210, -200, -220, -220, -220, -180], side: 1, offer: -100,  card: "./img/card1.png", practice: false},
+      {outcome: [+70, +70, +50, +1360, +50, +50], side: 0, offer: +20,  card: "./img/card1.png", practice: false},
+      {outcome: [+90, +70, +100, +80, +90, +120], side: 0, offer: +70,  card: "./img/card1.png", practice: false},
+      {outcome: [-110, -110, -100, -160, -100, -80], side: 1, offer: -150,  card: "./img/card1.png", practice: false},
+      {outcome: [-200, -170, -180, -190, -190, -160], side: 1, offer: -210,  card: "./img/card1.png", practice: false},
+      {outcome: [+150, +140, +140, +120, +140, +140], side: 0, offer: +250,  card: "./img/card1.png", practice: false},
+      {outcome: [-160, -140, -150, -150, -150, -160], side: 1, offer: -110,  card: "./img/card1.png", practice: false},
+      {outcome: [-80, -110, -90, -100, -90, -60], side: 0, offer: -40,  card: "./img/card1.png", practice: false},
+      {outcome: [+110, +90, +100, +90, +100, +100], side: 0, offer: +110,  card: "./img/card1.png", practice: false},
+      {outcome: [-130, -100, -110, -80, -110, -80], side: 0, offer: -40,  card: "./img/card1.png", practice: false},
+      {outcome: [+100, +100, +80, +120, +100, +130], side: 1, offer: +50,  card: "./img/card1.png", practice: false},
+      {outcome: [-40, -40, -60, -60, -40, -40], side: 0, offer: -110,  card: "./img/card1.png", practice: false},
+      {outcome: [-1250, -10, +10, +0, +10, +0], side: 0, offer: -240,  card: "./img/card1.png", practice: false},
+      {outcome: [+150, +170, +170, +160, -650, +150], side: 1, offer: +220,  card: "./img/card1.png", practice: false},
+      {outcome: [+160, +110, +170, +150, +1010, +130], side: 0, offer: +410,  card: "./img/card1.png", practice: false},
+      {outcome: [-60, +1350, -110, -60, -90, -90], side: 0, offer: -170,  card: "./img/card1.png", practice: false},
+      {outcome: [-90, -40, +760, -80, -30, -90], side: 1, offer: -60,  card: "./img/card1.png", practice: false},
+      {outcome: [-120, -1510, -130, -80, -110, -130], side: 1, offer: -320,  card: "./img/card1.png", practice: false},
+      {outcome: [-70, -60, -80, -50, -70, -30], side: 0, offer: +0,  card: "./img/card1.png", practice: false},
+      {outcome: [-20, -10, -40, -40, -50, -60], side: 1, offer: -20,  card: "./img/card1.png", practice: false},
+      {outcome: [+160, +120, +160, +130, +160, +110], side: 1, offer: +10,  card: "./img/card1.png", practice: false},
+      {outcome: [+10, -10, -50, +40, +0, +0], side: 1, offer: -20,  card: "./img/card1.png", practice: false},
+      {outcome: [-50, -100, -40, -130, -90, -90], side: 0, offer: -250,  card: "./img/card1.png", practice: false},
+      {outcome: [-910, -80, -70, -110, -130, -80], side: 0, offer: -30,  card: "./img/card1.png", practice: false},
+      {outcome: [-80, -150, -160, -160, -180, -180], side: 0, offer: -230,  card: "./img/card1.png", practice: false},
+      {outcome: [-90, -150, -170, -140, -170, -150], side: 0, offer: +50,  card: "./img/card1.png", practice: false},
+      {outcome: [+1150, +30, +40, +30, +80, +40], side: 1, offer: +80,  card: "./img/card1.png", practice: false},
+      {outcome: [-70, -90, -70, -50, -80, -80], side: 1, offer: +140,  card: "./img/card1.png", practice: false},
+      {outcome: [+200, +160, +150, +160, +170, +180], side: 0, offer: +110,  card: "./img/card1.png", practice: false},
+      {outcome: [+140, +100, -850, +120, +110, +130], side: 1, offer: -70,  card: "./img/card1.png", practice: false},
+      {outcome: [+50, +70, +80, +990, +10, +1050], side: 1, offer: +210,  card: "./img/card1.png", practice: false},
+      {outcome: [+210, +190, +610, +190, +190, +560], side: 0, offer: +280,  card: "./img/card1.png", practice: false},
+      {outcome: [-140, -160, -150, -130, -170, -160], side: 1, offer: -210,  card: "./img/card1.png", practice: false},
+      {outcome: [-100, -110, +1180, -100, -80, +890], side: 0, offer: +170,  card: "./img/card1.png", practice: false},
+      {outcome: [+160, +160, +140, +160, +160, +140], side: 0, offer: +270,  card: "./img/card1.png", practice: false},
+      {outcome: [-140, -150, -170, -150, -150, -150], side: 0, offer: -220,  card: "./img/card1.png", practice: false},
+      {outcome: [+140, +120, +140, +120, +100, +100], side: 1, offer: +150,  card: "./img/card1.png", practice: false},
+      {outcome: [+100, +110, +100, +110, +100, +140], side: 1, offer: +210,  card: "./img/card1.png", practice: false},
+      {outcome: [-80, -30, -50, -60, -70, -70], side: 0, offer: +10,  card: "./img/card1.png", practice: false},
+      {outcome: [-130, -70, -130, -140, +970, +1050], side: 0, offer: -170,  card: "./img/card1.png", practice: false},
+      {outcome: [-1280, +130, +150, +130, +130, +130], side: 1, offer: +90,  card: "./img/card1.png", practice: false},
+      {outcome: [-110, -150, -140, -140, -150, -150], side: 1, offer: -130,  card: "./img/card1.png", practice: false},
+      {outcome: [-120, -140, -100, -120, -110, -80], side: 1, offer: -290,  card: "./img/card1.png", practice: false},
+      {outcome: [-200, -250, -200, -220, -200, -220], side: 1, offer: -200,  card: "./img/card1.png", practice: false},
+      {outcome: [-30, -70, -10, -1220, -40, -40], side: 1, offer: -190,  card: "./img/card1.png", practice: false},
+      {outcome: [-240, -230, -250, -250, -230, -240], side: 1, offer: -140,  card: "./img/card1.png", practice: false},
+      {outcome: [+120, +80, +130, +150, +100, +100], side: 0, offer: +20,  card: "./img/card1.png", practice: false},
+      {outcome: [+130, +120, +120, +150, +130, +140], side: 1, offer: +240,  card: "./img/card1.png", practice: false},
+      {outcome: [+1040, +70, +80, +80, +100, +100], side: 1, offer: +270,  card: "./img/card1.png", practice: false},
+      {outcome: [+140, +160, -880, +180, +140, +110], side: 0, offer: +170,  card: "./img/card1.png", practice: false},
+      {outcome: [-230, -190, -240, -200, -210, -210], side: 0, offer: -140,  card: "./img/card1.png", practice: false},
+      {outcome: [-20, -20, -1440, +10, -20, -20], side: 0, offer: -190,  card: "./img/card1.png", practice: false},
+      {outcome: [+190, +210, +180, +190, +180, +160], side: 0, offer: +440,  card: "./img/card1.png", practice: false},
+      {outcome: [-90, -120, -70, -80, -590, -70], side: 0, offer: -110,  card: "./img/card1.png", practice: false},
+      {outcome: [-140, -160, -140, -150, -130, -130], side: 0, offer: -10,  card: "./img/card1.png", practice: false},
+      {outcome: [-110, -110, -990, -100, -120, -120], side: 1, offer: -340,  card: "./img/card1.png", practice: false},
+      {outcome: [+160, +150, +960, +190, +120, +150], side: 0, offer: +290,  card: "./img/card1.png", practice: false},
+      {outcome: [-60, -70, -90, -70, -50, -40], side: 1, offer: -240,  card: "./img/card1.png", practice: false},
+      {outcome: [+80, -850, +80, +60, +80, +60], side: 0, offer: +30,  card: "./img/card1.png", practice: false},
+      {outcome: [-1050, -50, -50, -70, -80, -90], side: 0, offer: -90,  card: "./img/card1.png", practice: false},
+      {outcome: [-120, -110, -110, -70, -70, -90], side: 0, offer: -250,  card: "./img/card1.png", practice: false},
+      {outcome: [+140, +120, +110, +90, +1230, +100], side: 0, offer: +160,  card: "./img/card1.png", practice: false},
+      {outcome: [+110, +110, +130, +130, +120, +80], side: 1, offer: +180,  card: "./img/card1.png", practice: false},
+      {outcome: [+0, +20, -30, +0, -20, +20], side: 0, offer: -20,  card: "./img/card1.png", practice: false},
+      {outcome: [+90, +90, +80, +90, +90, +80], side: 1, offer: +70,  card: "./img/card1.png", practice: false},
+      {outcome: [-110, -80, -90, -1340, -100, -150], side: 0, offer: -160,  card: "./img/card1.png", practice: false},
+      {outcome: [-280, -240, -230, -220, -1030, -230], side: 0, offer: -400,  card: "./img/card1.png", practice: false},
+      {outcome: [-110, -120, -100, -100, -110, -100], side: 1, offer: -120,  card: "./img/card1.png", practice: false},
+      {outcome: [-80, -120, -80, -70, -50, -70], side: 0, offer: -80,  card: "./img/card1.png", practice: false},
+      {outcome: [-20, +10, -20, +0, -30, -40], side: 1, offer: -30,  card: "./img/card1.png", practice: false},
+      {outcome: [+40, +50, +40, +50, +80, +60], side: 0, offer: +70,  card: "./img/card1.png", practice: false},
+      {outcome: [-120, -120, -190, +1320, -150, -150], side: 1, offer: +160,  card: "./img/card1.png", practice: false},
+      {outcome: [-130, -160, -160, -160, -140, -130], side: 1, offer: -410,  card: "./img/card1.png", practice: false},
+      {outcome: [-90, -80, -70, -70, -100, -40], side: 1, offer: +0,  card: "./img/card1.png", practice: false},
+      {outcome: [-80, -60, -30, -80, -50, -60], side: 0, offer: -110,  card: "./img/card1.png", practice: false},
+      {outcome: [+140, +130, +110, +80, +120, +150], side: 0, offer: +160,  card: "./img/card1.png", practice: false},
+      {outcome: [+90, +50, +80, -1300, +70, +90], side: 1, offer: -180,  card: "./img/card1.png", practice: false},
+      {outcome: [+80, +60, +110, +100, +100, +60], side: 1, offer: +10,  card: "./img/card1.png", practice: false},
+      {outcome: [+90, +50, +70, +30, +90, +50], side: 0, offer: +70,  card: "./img/card1.png", practice: false},
+      {outcome: [+120, +80, +100, +60, +90, +40], side: 1, offer: +250,  card: "./img/card1.png", practice: false},
+      {outcome: [+150, -710, +130, +120, +110, +90], side: 0, offer: -200,  card: "./img/card1.png", practice: false},
+      {outcome: [+950, -170, -180, -140, -160, -170], side: 1, offer: +170,  card: "./img/card1.png", practice: false},
+      {outcome: [-160, -170, -160, +1100, -190, -200], side: 1, offer: -260,  card: "./img/card1.png", practice: false},
+      {outcome: [+100, +100, +150, +130, +140, +120], side: 1, offer: +160,  card: "./img/card1.png", practice: false},
+      {outcome: [-100, -90, -120, -140, +650, -100], side: 0, offer: +70,  card: "./img/card1.png", practice: false},
+      {outcome: [-170, -170, -210, -200, -190, -230], side: 0, offer: -130,  card: "./img/card1.png", practice: false},
+      {outcome: [+70, +20, +30, +0, +80, +40], side: 0, offer: +130,  card: "./img/card1.png", practice: false},
+      {outcome: [+110, +90, +80, +90, +90, +110], side: 0, offer: -30,  card: "./img/card1.png", practice: false},
+      {outcome: [+220, +220, +190, +210, +210, +210], side: 0, offer: +240,  card: "./img/card1.png", practice: false},
+      {outcome: [+130, +80, +140, +150, +160, +110], side: 1, offer: +100,  card: "./img/card1.png", practice: false},
+      {outcome: [+80, +1170, +70, +50, +30, +1310], side: 1, offer: +110,  card: "./img/card1.png", practice: false},
+      {outcome: [+1110, -150, -140, -150, -160, -140], side: 1, offer: -80,  card: "./img/card1.png", practice: false},
+      {outcome: [+100, +1250, +70, +90, +100, +120], side: 1, offer: +250,  card: "./img/card1.png", practice: false},
+      {outcome: [+100, +160, +100, +150, +130, +120], side: 0, offer: +200,  card: "./img/card1.png", practice: false},
+      {outcome: [-110, -1370, -110, -150, -120, -130], side: 1, offer: +110,  card: "./img/card1.png", practice: false},
+      {outcome: [+80, +90, +60, -670, +100, +90], side: 1, offer: +60,  card: "./img/card1.png", practice: false},
+      {outcome: [+110, +100, +90, +90, +130, +120], side: 1, offer: +20,  card: "./img/card1.png", practice: false},
+      {outcome: [+180, +140, +130, +170, +160, +140], side: 0, offer: +50,  card: "./img/card1.png", practice: false},
+      {outcome: [-120, +1260, -90, -130, -140, -140], side: 1, offer: +160,  card: "./img/card1.png", practice: false},
+      {outcome: [+90, +80, +100, +80, -1120, +100], side: 1, offer: -220,  card: "./img/card1.png", practice: false},
+    ]
+
+  }
+  timeline.push(test_procedure);
+
+  // total_decks = test_procedure.timeline_variables.length
+  var end_screen = {
+    type: 'html-keyboard-response',
+    stimulus: 'This is the end of the experiment!  Thank you for taking part!',
+    choices: [32],
+    // on_start: function(trial) {
+      // if ((counter % saveEveryNGames) == 0){
+      //   dataset = jsPsych.data.get();
+      //   dataset.addToAll({age: resp.Age, initials: resp.Initials, sID: sID});
+      //   dataset = dataset.ignore('internal_node_id');
+      //   dataset = dataset.ignore('responses');
+      //   dataset = dataset.ignore('trial_type');
+      //   data = dataset.filterCustom(function(trial){
+      //     return trial.block === block;
+      //   })
+      //   write_data(data.csv());
+      //
+      // }
+    // }
+  }
+  timeline.push(end_screen);
+
+  /* finish connection with pavlovia.org */
+  var pavlovia_finish = {
+  	type: "pavlovia",
+  	command: "finish"
+  	};
+  timeline.push(pavlovia_finish);
+
+  // /* start the experiment */
+  // jsPsych.init({
+  // 	timeline: timeline,
+  // 	[...]
+  // });
+
+
+  var i;
+  /* start the experiment */
+  jsPsych.init({
+    timeline: timeline,
+    preload_images: [
+      "./img/card1.png",
+      "./img/card2.png",
+    ],
+    // on_finish: function() {
+    //   // save last block if not already saved
+    //   jsPsych.data.displayData();
+    //
+    // }
+  });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+  // DON'T COPY PAST HERE !!!! // DON'T COPY PAST HERE !!!! //
+
+
+
+  </script>
+
+</html>
